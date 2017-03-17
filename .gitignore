@@ -1,0 +1,8 @@
+# elm build stuff
+build/
+node_modules/
+public/js/
+# elm-package generated files
+elm-stuff/
+# elm-repl generated files
+repl-temp-*

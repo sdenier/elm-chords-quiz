@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import Char
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -25,50 +26,49 @@ type alias Note =
 
 
 type alias Scale =
-    List Note
+    List ( Int, Note )
 
 
-majorScale : Scale
-majorScale =
-    [ "A", "B", "C", "D", "E", "F", "G" ]
+
+-- chromaticScale == [(0, "A"), (1, "B"), ...]
 
 
-fullScale : Scale
-fullScale =
-    [ "A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#" ]
+chromaticScale : Scale
+chromaticScale =
+    List.indexedMap (,) [ "A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#" ]
 
 
-noteAt : Int -> Scale -> Note
-noteAt index scale =
-    case index of
-        0 ->
-            case List.head scale of
-                Just note ->
-                    note
-
-                Nothing ->
-                    "A"
-
-        _ ->
-            case (List.tail scale) of
-                Just endScale ->
-                    noteAt (index - 1) endScale
-
-                Nothing ->
-                    "A"
+chromaticLength : Int
+chromaticLength =
+    List.length chromaticScale
 
 
-indexFor : Note -> Scale -> Int -> Int
-indexFor note scale idx =
-    case scale of
-        n :: rest ->
-            if n == note then
-                idx
-            else
-                indexFor note rest (idx + 1)
+indexForNote : Note -> Scale -> Int
+indexForNote note scale =
+    let
+        n =
+            List.filter (\( _, n ) -> n == note) scale
+    in
+        case n of
+            ( i, _ ) :: _ ->
+                i
 
-        [] ->
-            13
+            _ ->
+                chromaticLength
+
+
+noteForIndex : Int -> Scale -> Note
+noteForIndex index scale =
+    let
+        n =
+            List.filter (\( i, _ ) -> i == index) scale
+    in
+        case n of
+            ( _, note ) :: _ ->
+                note
+
+            _ ->
+                "Unknown"
 
 
 type alias Model =
@@ -87,7 +87,7 @@ type Result
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model "A" Pending "", Cmd.none )
+    ( Model "" Pending "", randomRoot )
 
 
 
@@ -104,7 +104,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         NewQuiz ->
-            ( { model | result = Pending }, Random.generate NewRoot randomNoteInMajorScale )
+            ( { model | result = Pending }, randomRoot )
 
         NewRoot newRoot ->
             ( { model | rootNote = newRoot }, Cmd.none )
@@ -117,29 +117,48 @@ update msg model =
                 ( { model | result = result, solution = solution }, Cmd.none )
 
 
-randomNoteInMajorScale : Random.Generator Note
-randomNoteInMajorScale =
-    Random.map (\n -> noteAt n majorScale) (Random.int 0 6)
+
+-- Take a random root from [A..G] chars
+
+
+randomRoot : Cmd Msg
+randomRoot =
+    let
+        noteGen =
+            Random.map (\n -> String.fromChar <| Char.fromCode (n + 65)) (Random.int 0 6)
+    in
+        Random.generate NewRoot noteGen
+
+
+getSolution : Note -> ( Int, Note )
+getSolution rootNote =
+    let
+        rootIndex =
+            indexForNote rootNote chromaticScale
+
+        solutionIndex =
+            (rootIndex + 4) % chromaticLength
+
+        solution =
+            noteForIndex solutionIndex chromaticScale
+    in
+        ( solutionIndex, solution )
 
 
 checkResponse : Note -> Note -> ( Result, Note )
 checkResponse rootNote response =
     let
-        rootIndex =
-            indexFor rootNote fullScale 0
+        ( solutionIndex, solution ) =
+            getSolution rootNote
 
-        thirdIndex =
-            (rootIndex + 4) % (List.length fullScale)
-
-        solution =
-            noteAt thirdIndex fullScale
-
-        givenNote =
-            String.toUpper response
+        responseIndex =
+            indexForNote (String.toUpper response) chromaticScale
 
         result =
-            if givenNote == solution then
+            if responseIndex == solutionIndex then
                 Good
+            else if responseIndex == chromaticLength then
+                Invalid
             else
                 Bad
     in
@@ -174,7 +193,7 @@ displayAnswer result solution =
             text ("Perdu ! La solution est " ++ solution)
 
         Invalid ->
-            text "Je ne reconnais pas cette note"
+            text "Ce n'est pas une note !"
 
         Pending ->
             text ""

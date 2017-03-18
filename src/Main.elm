@@ -73,6 +73,7 @@ noteForIndex index scale =
 
 type alias Model =
     { rootNote : Note
+    , response : Note
     , result : Result
     , solution : Note
     }
@@ -87,7 +88,7 @@ type Result
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model "" Pending "", randomRoot )
+    ( Model "" "" Pending "", randomRoot )
 
 
 
@@ -97,22 +98,26 @@ init =
 type Msg
     = NewQuiz
     | NewRoot Note
-    | GiveResponse Note
+    | NewResponse Note
+    | Check
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         NewQuiz ->
-            ( { model | result = Pending }, randomRoot )
+            ( { model | result = Pending, response = "" }, randomRoot )
 
         NewRoot newRoot ->
             ( { model | rootNote = newRoot }, Cmd.none )
 
-        GiveResponse response ->
+        NewResponse response ->
+            ( { model | response = response }, Cmd.none )
+
+        Check ->
             let
                 ( result, solution ) =
-                    checkResponse model.rootNote response
+                    checkResponse model.rootNote model.response
             in
                 ( { model | result = result, solution = solution }, Cmd.none )
 
@@ -174,12 +179,15 @@ view model =
     section [ style [ centered ] ]
         [ div []
             [ text <| "Quelle est la tierce majeure de " ++ model.rootNote ++ " ? "
-            , input [ type_ "text", placeholder "Réponse", onInput GiveResponse ] []
+            , input [ type_ "text", placeholder "Réponse", onInput NewResponse ] []
+            ]
+        , div []
+            [ button [ onClick Check ] [ text "Check" ]
+            , button [ onClick NewQuiz ] [ text "New Quiz" ]
             ]
         , div []
             [ displayAnswer model.result model.solution
             ]
-        , button [ onClick NewQuiz ] [ text "New Quiz" ]
         ]
 
 

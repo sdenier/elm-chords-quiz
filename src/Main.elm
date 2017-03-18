@@ -1,6 +1,5 @@
 module Main exposing (..)
 
-import Char
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -23,6 +22,53 @@ main =
 
 type alias Note =
     String
+
+
+type alias Scale =
+    List Note
+
+
+majorScale : Scale
+majorScale =
+    [ "A", "B", "C", "D", "E", "F", "G" ]
+
+
+fullScale : Scale
+fullScale =
+    [ "A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#" ]
+
+
+noteAt : Int -> Scale -> Note
+noteAt index scale =
+    case index of
+        0 ->
+            case List.head scale of
+                Just note ->
+                    note
+
+                Nothing ->
+                    "A"
+
+        _ ->
+            case (List.tail scale) of
+                Just endScale ->
+                    noteAt (index - 1) endScale
+
+                Nothing ->
+                    "A"
+
+
+indexFor : Note -> Scale -> Int -> Int
+indexFor note scale idx =
+    case scale of
+        n :: rest ->
+            if n == note then
+                idx
+            else
+                indexFor note rest (idx + 1)
+
+        [] ->
+            13
 
 
 type alias Model =
@@ -58,7 +104,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         NewQuiz ->
-            ( model, Random.generate NewRoot randomRootNote )
+            ( { model | result = Pending }, Random.generate NewRoot randomNoteInMajorScale )
 
         NewRoot newRoot ->
             ( { model | rootNote = newRoot }, Cmd.none )
@@ -71,19 +117,33 @@ update msg model =
                 ( { model | result = result, solution = solution }, Cmd.none )
 
 
-charOffsetForNote : Int
-charOffsetForNote =
-    65
-
-
-randomRootNote : Random.Generator String
-randomRootNote =
-    Random.map (\n -> String.fromChar <| Char.fromCode (n + charOffsetForNote)) (Random.int 0 6)
+randomNoteInMajorScale : Random.Generator Note
+randomNoteInMajorScale =
+    Random.map (\n -> noteAt n majorScale) (Random.int 0 6)
 
 
 checkResponse : Note -> Note -> ( Result, Note )
 checkResponse rootNote response =
-    ( Good, "" )
+    let
+        rootIndex =
+            indexFor rootNote fullScale 0
+
+        thirdIndex =
+            (rootIndex + 4) % (List.length fullScale)
+
+        solution =
+            noteAt thirdIndex fullScale
+
+        givenNote =
+            String.toUpper response
+
+        result =
+            if givenNote == solution then
+                Good
+            else
+                Bad
+    in
+        ( result, solution )
 
 
 

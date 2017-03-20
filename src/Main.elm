@@ -1,10 +1,11 @@
 module Main exposing (..)
 
+import Array exposing (Array)
 import Char
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Random
+import Random exposing (Generator)
 
 
 main : Program Never Model Msg
@@ -27,6 +28,12 @@ type alias Note =
 
 type alias Scale =
     List ( Int, Note )
+
+
+type alias Chord =
+    { name : String
+    , interval : Int
+    }
 
 
 
@@ -71,8 +78,46 @@ noteForIndex index scale =
                 "Unknown"
 
 
+
+-- Chord definitions
+
+
+thirdChord : Chord
+thirdChord =
+    { name = "tierce majeure", interval = 4 }
+
+
+chords : Array Chord
+chords =
+    Array.fromList
+        [ thirdChord
+        , { name = "quinte juste", interval = 7 }
+        , { name = "septième mineure", interval = 10 }
+        ]
+
+
+chordsNumber : Int
+chordsNumber =
+    Array.length chords
+
+
+chordAt : Int -> Chord
+chordAt idx =
+    let
+        elem =
+            Array.get idx chords
+    in
+        case elem of
+            Just chord ->
+                chord
+
+            Nothing ->
+                thirdChord
+
+
 type alias Model =
     { rootNote : Note
+    , chord : Chord
     , response : Note
     , result : Result
     , solution : Note
@@ -88,7 +133,7 @@ type Result
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model "" "" Pending "", randomRoot )
+    ( Model "" thirdChord "" Pending "", randomQuiz )
 
 
 
@@ -96,8 +141,8 @@ init =
 
 
 type Msg
-    = NewQuiz
-    | NewRoot Note
+    = ResetQuiz
+    | NewQuiz ( Note, Chord )
     | NewResponse Note
     | Check
 
@@ -105,11 +150,11 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NewQuiz ->
-            ( { model | result = Pending, response = "" }, randomRoot )
+        ResetQuiz ->
+            ( { model | result = Pending, response = "" }, randomQuiz )
 
-        NewRoot newRoot ->
-            ( { model | rootNote = newRoot }, Cmd.none )
+        NewQuiz ( newRoot, newChord ) ->
+            ( { model | rootNote = newRoot, chord = newChord }, Cmd.none )
 
         NewResponse response ->
             ( { model | response = response }, Cmd.none )
@@ -117,32 +162,42 @@ update msg model =
         Check ->
             let
                 ( result, solution ) =
-                    checkResponse model.rootNote model.response
+                    checkResponse model.rootNote model.chord model.response
             in
                 ( { model | result = result, solution = solution }, Cmd.none )
 
 
 
--- Take a random root from [A..G] chars
+-- Take a random root from [A..G] chars and a random chord question
 
 
-randomRoot : Cmd Msg
-randomRoot =
+randomQuiz : Cmd Msg
+randomQuiz =
     let
-        noteGen =
-            Random.map (\n -> String.fromChar <| Char.fromCode (n + 65)) (Random.int 0 6)
+        gen =
+            Random.pair randomRoot randomChord
     in
-        Random.generate NewRoot noteGen
+        Random.generate NewQuiz gen
 
 
-getSolution : Note -> ( Int, Note )
-getSolution rootNote =
+randomRoot : Generator Note
+randomRoot =
+    Random.map (\n -> String.fromChar <| Char.fromCode (n + 65)) (Random.int 0 6)
+
+
+randomChord : Generator Chord
+randomChord =
+    Random.map (\n -> chordAt n) (Random.int 0 chordsNumber)
+
+
+getSolution : Note -> Chord -> ( Int, Note )
+getSolution rootNote chord =
     let
         rootIndex =
             indexForNote rootNote chromaticScale
 
         solutionIndex =
-            (rootIndex + 4) % chromaticLength
+            (rootIndex + chord.interval) % chromaticLength
 
         solution =
             noteForIndex solutionIndex chromaticScale
@@ -150,11 +205,11 @@ getSolution rootNote =
         ( solutionIndex, solution )
 
 
-checkResponse : Note -> Note -> ( Result, Note )
-checkResponse rootNote response =
+checkResponse : Note -> Chord -> Note -> ( Result, Note )
+checkResponse rootNote chord response =
     let
         ( solutionIndex, solution ) =
-            getSolution rootNote
+            getSolution rootNote chord
 
         responseIndex =
             indexForNote (String.toUpper response) chromaticScale
@@ -178,12 +233,12 @@ view : Model -> Html Msg
 view model =
     section [ style [ centered ] ]
         [ div []
-            [ text <| "Quelle est la tierce majeure de " ++ model.rootNote ++ " ? "
+            [ text <| "Quelle est la " ++ model.chord.name ++ " de " ++ model.rootNote ++ " ? "
             , input [ type_ "text", placeholder "Réponse", onInput NewResponse ] []
             ]
         , div []
             [ button [ onClick Check ] [ text "Check" ]
-            , button [ onClick NewQuiz ] [ text "New Quiz" ]
+            , button [ onClick ResetQuiz ] [ text "New Quiz" ]
             ]
         , div []
             [ displayAnswer model.result model.solution

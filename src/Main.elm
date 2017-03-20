@@ -84,15 +84,15 @@ noteForIndex index scale =
 
 thirdChord : Chord
 thirdChord =
-    { name = "tierce majeure", interval = 4 }
+    { name = "major third", interval = 4 }
 
 
 chords : Array Chord
 chords =
     Array.fromList
         [ thirdChord
-        , { name = "quinte juste", interval = 7 }
-        , { name = "septième mineure", interval = 10 }
+        , { name = "fifth", interval = 7 }
+        , { name = "minor seventh", interval = 10 }
         ]
 
 
@@ -233,8 +233,8 @@ view : Model -> Html Msg
 view model =
     section [ style [ centered ] ]
         [ div []
-            [ text <| "Quelle est la " ++ model.chord.name ++ " de " ++ model.rootNote ++ " ? "
-            , input [ type_ "text", placeholder "Réponse", onInput NewResponse ] []
+            [ text <| "What is the " ++ model.chord.name ++ " of " ++ model.rootNote ++ " ? "
+            , input [ type_ "text", placeholder "response", onInput NewResponse ] []
             ]
         , div []
             [ button [ onClick Check ] [ text "Check" ]
@@ -250,13 +250,13 @@ displayAnswer : Result -> Note -> Html Msg
 displayAnswer result solution =
     case result of
         Good ->
-            text "Bravo ! Vous connaissez votre gamme !"
+            text "Good! You know your scale!"
 
         Bad ->
-            text ("Perdu ! La solution est " ++ solution)
+            text ("Bad! Solution is " ++ solution)
 
         Invalid ->
-            text "Ce n'est pas une note !"
+            text "This is not a note!"
 
         Pending ->
             text ""

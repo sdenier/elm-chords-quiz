@@ -231,16 +231,40 @@ checkResponse rootNote chord response =
 
 view : Model -> Html Msg
 view model =
-    section [ style [ centered ] ]
-        [ div []
-            [ text <| "What is the " ++ model.chord.name ++ " of " ++ model.rootNote ++ " ? "
-            , input [ type_ "text", placeholder "response", onInput NewResponse ] []
+    div []
+        [ div [ class "columns" ]
+            [ h1 [ style [ centered ], class "column title" ] [ text "Chord Quiz" ]
             ]
-        , div []
-            [ button [ onClick Check ] [ text "Check" ]
-            , button [ onClick ResetQuiz ] [ text "New Quiz" ]
+        , div [ class "columns" ]
+            [ div [ class "column is-8 is-offset-2" ]
+                [ displayQuiz model
+                ]
             ]
-        , div []
+        ]
+
+
+displayQuiz : Model -> Html Msg
+displayQuiz model =
+    section [ class "box" ]
+        [ div [ class "columns" ]
+            [ div [ class "column is-half has-text-right" ]
+                [ h2 [ class "title is-4" ]
+                    [ text <| "What is the " ++ model.chord.name ++ " of " ++ model.rootNote ++ " ? "
+                    ]
+                ]
+            , div [ class "column is-3 control" ]
+                [ input [ type_ "text", placeholder "response", onInput NewResponse, class "input" ] []
+                ]
+            ]
+        , div [ class "columns" ]
+            [ div [ class "column is-2 is-offset-4" ]
+                [ button [ onClick Check, class "button is-primary" ] [ text "Check" ]
+                ]
+            , div [ class "column is-2" ]
+                [ button [ onClick ResetQuiz, class "button" ] [ text "New Quiz" ]
+                ]
+            ]
+        , div [ class "columns" ]
             [ displayAnswer model.result model.solution
             ]
         ]
@@ -248,18 +272,24 @@ view model =
 
 displayAnswer : Result -> Note -> Html Msg
 displayAnswer result solution =
-    case result of
-        Good ->
-            text "Good! You know your scale!"
+    let
+        ( msg, cls ) =
+            case result of
+                Good ->
+                    ( "Good! You know your scale!", "is-success" )
 
-        Bad ->
-            text ("Bad! Solution is " ++ solution)
+                Bad ->
+                    ( "Bad! Solution is " ++ solution, "is-danger" )
 
-        Invalid ->
-            text "This is not a note!"
+                Invalid ->
+                    ( "This is not a note!", "is-warning" )
 
-        Pending ->
-            text ""
+                Pending ->
+                    ( "Write your response and check", "" )
+    in
+        div [ class (" column is-half is-offset-3 notification " ++ cls) ]
+            [ text msg
+            ]
 
 
 

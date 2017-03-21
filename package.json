@@ -1,0 +1,19 @@
+{
+  "name": "elm-chords-quiz",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "elm-make src/Main.elm --output public/main.js --warn"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sdenier/elm-chords-quiz.git"
+  },
+  "author": "Simon Denier",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sdenier/elm-chords-quiz/issues"
+  },
+  "homepage": "https://github.com/sdenier/elm-chords-quiz#readme"
+}

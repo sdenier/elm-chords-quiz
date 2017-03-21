@@ -6,3 +6,4 @@ public/js/
 elm-stuff/
 # elm-repl generated files
 repl-temp-*
+public/main.js

@@ -27,7 +27,7 @@ type alias Note =
 
 
 type alias Scale =
-    List ( Int, Note )
+    List Note
 
 
 type alias Chord =
@@ -36,13 +36,9 @@ type alias Chord =
     }
 
 
-
--- chromaticScale == [(0, "A"), (1, "B"), ...]
-
-
 chromaticScale : Scale
 chromaticScale =
-    List.indexedMap (,) [ "A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#" ]
+    [ "A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#" ]
 
 
 chromaticLength : Int
@@ -52,30 +48,20 @@ chromaticLength =
 
 indexForNote : Note -> Scale -> Int
 indexForNote note scale =
-    let
-        n =
-            List.filter (\( _, n ) -> n == note) scale
-    in
-        case n of
-            ( i, _ ) :: _ ->
-                i
+    case scale of
+        [] ->
+            chromaticLength
 
-            _ ->
-                chromaticLength
+        n :: rest ->
+            if n == note then
+                0
+            else
+                1 + (indexForNote note rest)
 
 
 noteForIndex : Int -> Scale -> Note
 noteForIndex index scale =
-    let
-        n =
-            List.filter (\( i, _ ) -> i == index) scale
-    in
-        case n of
-            ( _, note ) :: _ ->
-                note
-
-            _ ->
-                "Unknown"
+    Array.fromList scale |> Array.get index |> Maybe.withDefault "Unknown"
 
 
 
@@ -103,16 +89,7 @@ chordsNumber =
 
 chordAt : Int -> Chord
 chordAt idx =
-    let
-        elem =
-            Array.get idx chords
-    in
-        case elem of
-            Just chord ->
-                chord
-
-            Nothing ->
-                thirdChord
+    Array.get idx chords |> Maybe.withDefault thirdChord
 
 
 type alias Model =

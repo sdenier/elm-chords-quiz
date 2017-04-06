@@ -5,6 +5,7 @@ import Char
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import List.Extra as List
 import Random exposing (Generator)
 
 
@@ -48,15 +49,7 @@ chromaticLength =
 
 indexForNote : Note -> Scale -> Int
 indexForNote note scale =
-    case scale of
-        [] ->
-            chromaticLength
-
-        n :: rest ->
-            if n == note then
-                0
-            else
-                1 + (indexForNote note rest)
+    List.elemIndex note scale |> Maybe.withDefault chromaticLength
 
 
 noteForIndex : Int -> Scale -> Note
